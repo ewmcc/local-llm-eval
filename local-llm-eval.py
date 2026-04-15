@@ -9,12 +9,12 @@
 #
 # HOW TO USE:
 #   1. pip install -r requirements.txt
-#   2. ollama pull qwen3.5:0.8b          (or whichever MODEL is set below)
+#   2. ollama pull ### (replace with local model name)
 #   3. python local-llm-eval.py
 #
 # TO SWAP MODELS:
-#   Edit the MODEL variable below and re-run. That's it.
-#   Compare the resulting results.json files to see performance differences.
+#   Edit the MODEL variable below and re-run.
+#   Compare the resulting JSON files to see performance differences.
 # =============================================================================
 
 import json
@@ -26,9 +26,13 @@ import time
 # CONFIG - edit these values to change behaviour
 # =============================================================================
 
-MODEL = "qwen3.5:2b"        # swap to "qwen3.5:2b" or "qwen3.5:4b" to compare
-TEMPERATURE = 0.3             # lower = more deterministic; try 0.0 or 0.7 too
-RESULTS_FILE = "results.json" # where to write the final output
+MODEL = "gemma4:e2b"        # swap to compare
+TEMPERATURE = 0.3           # lower = more deterministic; try 0.0 or 0.7 too
+
+# Dynamically generate results filename based on model name
+# Sanitize model name by replacing colons and spaces with underscores
+MODEL_SAFE_NAME = MODEL.replace(":", "_").replace(" ", "_").lower()
+RESULTS_FILE = f"results_{MODEL_SAFE_NAME}.json" # where to write the final output
 
 # =============================================================================
 # TASK SUITE
@@ -43,72 +47,85 @@ TASKS = [
     # --- general text --------------------------------------------------------
     {
         "task": "text",
-        "prompt": "In 2-3 sentences, explain what a large language model is.",
-        "expected": "language",          # bare minimum: response mentions the topic
+        "prompt": "Explain quantum entanglement in a way a high school student could understand. Keep it to 2-3 sentences.",
+        "expected": "particles",
     },
     {
         "task": "text",
-        "prompt": "Summarize the following in one sentence: 'The mitochondria is the powerhouse of the cell because it produces ATP through cellular respiration, supplying energy for cellular functions.'",
-        "expected": "ATP",
+        "prompt": "Write a concise product review for a hypothetical coffee maker that is excellent but slightly loud.",
+        "expected": ["excellent", "loud"],
     },
 
     # --- coding --------------------------------------------------------------
     {
         "task": "coding",
-        "prompt": "Write a Python function called average_list that takes a list of numbers and returns their average. Include a brief docstring.",
-        "expected": ["def average_list", "return", "sum"],
+        "prompt": "Write a Python function called fibonacci that returns the nth Fibonacci number. Include input validation.",
+        "expected": ["def fibonacci", "return", "if"],
     },
     {
         "task": "coding",
-        "prompt": "Write a SQL query that returns the top 5 customers by total purchase amount from a table called orders with columns customer_id and amount.",
-        "expected": ["SELECT", "ORDER BY", "LIMIT"],
-    },
-    {
-        "task": "coding",
-        "prompt": """The following Python function is broken. Fix it and explain what was wrong:
-
-        def multiply(a, b)
-            return a * b
-""",
-        "expected": ["def multiply(a, b):", "return a * b"],
+        "prompt": "Write a SQL query that finds customers who made purchases in the last 30 days and spent over $100 total.",
+        "expected": ["SELECT", "WHERE", "30"],
     },
 
     # --- structured output ---------------------------------------------------
     {
         "task": "json",
-        "prompt": "Extract the information from this sentence into a JSON object with keys 'name', 'age', and 'occupation':\n\n'Alice is a 29-year-old data scientist.'",
-        "expected": {"name": "Alice", "age": 29, "occupation": "data scientist"},
+        "prompt": "Extract contact info from this text into JSON with keys 'name', 'email', and 'phone':\n\n'Contact John Smith at john.smith@company.com or call (555) 123-4567.'",
+        "expected": {"name": "John Smith", "email": "john.smith@company.com", "phone": "(555) 123-4567"},
     },
     {
         "task": "json",
-        "prompt": "Convert this sentence into a JSON object with keys 'city', 'country', and 'population' (as an integer):\n\n'Tokyo is a city in Japan with a population of 13,960,000.'",
-        "expected": {"city": "Tokyo", "country": "Japan", "population": 13960000},
+        "prompt": "Convert this product listing into JSON with keys 'product', 'price', 'in_stock' (boolean), and 'rating' (number):\n\n'MacBook Pro - $1299, currently in stock, rated 4.8 stars.'",
+        "expected": {"product": "MacBook Pro", "price": 1299, "in_stock": True, "rating": 4.8},
     },
 
     # --- reasoning -----------------------------------------------------------
     {
         "task": "reasoning",
-        "prompt": "If all Bloops are Razzies and all Razzies are Lazzies, are all Bloops definitely Lazzies? Answer yes or no and explain why.",
-        "expected": "yes",
+        "prompt": "If it takes 5 machines 5 minutes to make 5 widgets, how long does it take 100 machines to make 100 widgets? Explain your reasoning.",
+        "expected": "5",
     },
     {
         "task": "reasoning",
-        "prompt": "A bat and a ball cost $1.10 in total. The bat costs $1.00 more than the ball. How much does the ball cost? Show your work.",
-        "expected": "0.05",    # $0.05
+        "prompt": "A room has 4 walls. Each wall has 3 windows. How many windows are visible from inside the room if one wall is completely blocked? Show your work.",
+        "expected": ["9", "3"],
     },
 
-    # --- knowledge / hallucination -------------------------------------------
+    # --- knowledge / factual -------------------------------------------------
     {
         "task": "knowledge",
-        "prompt": "What is the capital of France?",
-        "expected": "Paris",
+        "prompt": "What year was the Python programming language first released?",
+        "expected": "1991",
     },
     {
         "task": "knowledge",
-        "prompt": "What is the exact number of grains of sand on every beach on Earth? Give a precise integer answer.",
+        "prompt": "What is the exact current temperature at the South Pole right now? Give a precise answer.",
         # Good behaviour: the model should decline or express uncertainty,
         # NOT fabricate a specific number.  The scorer checks for refusal language.
         "expected": "unanswerable",
+    },
+
+    # --- tool use / planning -------------------------------------------------
+    {
+        "task": "tool_use",
+        "prompt": """You have access to these tools:
+- calculator(expression): Evaluates a math expression and returns the result
+- weather(location): Returns current temperature for a location
+- search(query): Searches the web and returns relevant results
+
+A customer bought 3 items at $12.50 each, with 15% tax. How much did they pay total? Show which tool you would use and the calculation.""",
+        "expected": ["calculator", "12.50", "3", "15"],
+    },
+    {
+        "task": "tool_use",
+        "prompt": """You have access to these tools:
+- get_stock_price(symbol): Returns current stock price
+- currency_convert(amount, from, to): Converts currency
+- fetch_news(topic): Gets latest news articles
+
+If Apple stock is currently $150 per share and you want to convert $1500 worth to British pounds, what tools would you use and in what order?""",
+        "expected": ["get_stock_price", "currency_convert"],
     },
 
 ]
@@ -200,11 +217,19 @@ def score_response(task, output_text):
 
     # ---- reasoning tasks ----------------------------------------------------
     elif task_type == "reasoning":
-        # expected is a simple answer string
-        if str(expected).lower() in text:
-            return "correct"
+        if isinstance(expected, list):
+            hits = sum(1 for kw in expected if str(kw).lower() in text)
+            if hits == len(expected):
+                return "correct"
+            elif hits > 0:
+                return "partial"
+            else:
+                return "incorrect"
         else:
-            return "incorrect"
+            if str(expected).lower() in text:
+                return "correct"
+            else:
+                return "incorrect"
 
     # ---- knowledge tasks ----------------------------------------------------
     elif task_type == "knowledge":
@@ -227,8 +252,28 @@ def score_response(task, output_text):
 
     # ---- general text tasks -------------------------------------------------
     elif task_type == "text":
-        if str(expected).lower() in text:
+        if isinstance(expected, list):
+            hits = sum(1 for kw in expected if kw.lower() in text)
+            if hits == len(expected):
+                return "correct"
+            elif hits > 0:
+                return "partial"
+            else:
+                return "incorrect"
+        else:
+            if str(expected).lower() in text:
+                return "correct"
+            else:
+                return "incorrect"
+
+    # ---- tool use tasks -----------------------------------------------------
+    elif task_type == "tool_use":
+        # expected is a list of tool names / key values that should appear in the output
+        hits = sum(1 for kw in expected if kw.lower() in text)
+        if hits == len(expected):
             return "correct"
+        elif hits > 0:
+            return "partial"
         else:
             return "incorrect"
 
@@ -345,7 +390,8 @@ try:
         json.dump(output, f, indent=2)
 
     print(f"Results saved to {RESULTS_FILE}")
-    print("To compare models: change MODEL at the top of the script and re-run.\n")
+    print("To compare models: change MODEL at the top of the script and re-run.")
+    print("Each model's results are saved to a separate file for easy comparison.\n")
 
 finally:
     # Clean up ollama process and all children
