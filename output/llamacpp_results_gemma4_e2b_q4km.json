@@ -1,0 +1,133 @@
+{
+  "model": "gemma4_e2b_q4km",
+  "temperature": 0.3,
+  "summary": {
+    "correct": 12,
+    "partial": 0,
+    "incorrect": 0,
+    "avg_latency_ms": 50007.6,
+    "avg_tokens_per_sec": 2.8
+  },
+  "results": [
+    {
+      "task": "text",
+      "prompt": "Explain quantum entanglement in a way a high school student could understand. Keep it to 2-3 sentences.",
+      "score": "correct",
+      "output": "Quantum entanglement is a bizarre connection where two or more particles become linked, no matter how far apart they are. If you measure a property of one particle, you instantly know the corresponding property of the other, as if they are communicating faster than light. This interconnectedness is what makes it so strange and powerful.",
+      "latency_ms": 20066.1,
+      "tokens_in": 17,
+      "tokens_out": 55,
+      "tokens_per_sec": 2.7
+    },
+    {
+      "task": "text",
+      "prompt": "Write a concise product review for a hypothetical coffee maker that is excellent but slightly loud.",
+      "score": "correct",
+      "output": "## Coffee Maker Review: Powerful Brew, Noticeable Noise\n\nThis coffee maker delivers an **exceptionally rich and flavorful brew**. The quality of the coffee is truly excellent. However, be prepared for a **noticeably loud operation**. If you prioritize taste above all else, this is a winner. If you're sensitive to noise, you might want to consider alternatives. **Highly recommended for coffee lovers who don't mind the volume.**",
+      "latency_ms": 16647.4,
+      "tokens_in": 16,
+      "tokens_out": 66,
+      "tokens_per_sec": 4.0
+    },
+    {
+      "task": "coding",
+      "prompt": "Write a Python function called fibonacci that returns the nth Fibonacci number. Include input validation.",
+      "score": "correct",
+      "output": "```python\ndef fibonacci(n):\n    \"\"\"\n    Calculates the nth Fibonacci number.\n\n    The Fibonacci sequence starts with F(0) = 0 and F(1) = 1.\n    F(n) = F(n-1) + F(n-2) for n > 1.\n\n    Args:\n        n (int): The index of the Fibonacci number to calculate (must be non-negative).\n\n    Returns:\n        int: The nth Fibonacci number.\n        str: An error message if the input is invalid.\n    \"\"\"\n    # Input Validation\n    if not isinstance(n, int):\n        return \"Error: Input must be an integer.\"\n    if n < 0:\n        return \"Error: Input must be a non-negative integer.\"\n\n    # Base cases\n    if n == 0:\n        return 0\n    elif n == 1:\n        return 1\n    else:\n        # Iterative approach for efficiency\n        a = 0\n        b = 1\n        for _ in range(2, n + 1):\n            next_fib = a + b\n            a = b\n            b = next_fib\n        return b\n\n# --- Examples of Usage ---\n\n# Test case 1: n = 0 (Expected: 0)\nprint(f\"Fibonacci(0): {fibonacci(0)}\")\n\n# Test case 2: n = 1 (Expected: 1)\nprint(f\"Fibonacci(1): {fibonacci(1)}\")\n\n# Test case 3: n = 7 (Sequence: 0, 1, 1, 2, 3, 5, 8, 13. Expected: 13)\nprint(f\"Fibonacci(7): {fibonacci(7)}\")\n\n# Test case 4: Larger number\nprint(f\"Fibonacci(10): {fibonacci(10)}\")\n\n# Test case 5: Invalid input (Negative number)\nprint(f\"Fibonacci(-5): {fibonacci(-5)}\")\n\n# Test case 6: Invalid input (Float)\nprint(f\"Fibonacci(3.5): {fibonacci(3.5)}\")\n```",
+      "latency_ms": 127914.2,
+      "tokens_in": 15,
+      "tokens_out": 209,
+      "tokens_per_sec": 1.6
+    },
+    {
+      "task": "coding",
+      "prompt": "Write a SQL query that finds customers who made purchases in the last 30 days and spent over $100 total.",
+      "score": "correct",
+      "output": "```sql\nSELECT\n    c.customer_id,\n    c.first_name,\n    c.last_name,\n    SUM(o.total_amount) AS total_spent\nFROM\n    Customers c\nJOIN\n    Orders o ON c.customer_id = o.customer_id\nWHERE\n    o.order_date >= DATE('now', '-30 days')  -- For SQLite syntax (common in examples)\n    -- OR o.order_date >= CURRENT_DATE - INTERVAL '30' DAY  -- For PostgreSQL/MySQL\n    -- OR o.order_date >= DATEADD(day, -30, GETDATE()) -- For SQL Server\nGROUP BY\n    c.customer_id, c.first_name, c.last_name\nHAVING\n    SUM(o.total_amount) > 100;\n```\n\n### Explanation and Adaptations for Different SQL Dialects\n\nThis query assumes you have at least two tables: `Customers` and `Orders`.\n\n**Assumptions about your schema:**\n\n* **`Customers` table:** Contains customer information (e.g., `customer_id`, `first_name`, `last_name`).\n* **`Orders` table:** Contains order details (e.g., `order_id`, `customer_id`, `order_date`, `total_amount`).\n\n**Key Components of the Query:**\n\n1. **`SELECT ... SUM(o.total_amount) AS total_spent`**: We select customer details and calculate the sum of their purchase amounts.\n2. **`FROM Customers c JOIN Orders o ON c.customer_id = o.customer_id`**: This joins the two tables on the common `customer_id`.\n3. **`WHERE o.order_date >= ...`**: This is the crucial filtering step to select only orders placed within the last 30 days.\n4. **`GROUP BY c.customer_id, c.first_name, c.last_name`**: We group the results by customer so we can aggregate their total spending.\n5. **`HAVING SUM(o.total_amount) > 100`**: This filters the *grouped* results, ensuring that only customers whose total spending exceeds $100 are returned.\n\n---\n\n### Important: Adjusting the Date Function\n\nThe way you calculate \"30 days ago\" depends entirely on the specific SQL database system you are using.\n\nHere are common alternatives for the `WHERE` clause:\n\n| Database System | Recommended Syntax for \"Last 30 Days\" |\n| :--- | :--- |\n| **PostgreSQL** | `o.order_date >= CURRENT_DATE - INTERVAL '30' DAY` |\n| **MySQL** | `o.order_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)` |\n| **SQL Server** | `o.order_date >= DATEADD(day, -30, GETDATE())` |\n| **SQLite** | `o.order_date >= DATE('now', '-30 day')` |\n\n**Choose the syntax that matches your database.**",
+      "latency_ms": 106785.1,
+      "tokens_in": 20,
+      "tokens_out": 309,
+      "tokens_per_sec": 2.9
+    },
+    {
+      "task": "json",
+      "prompt": "Extract contact info from this text into JSON with keys 'name', 'email', and 'phone':\n\n'Contact John Smith at john.smith@company.com or call (555) 123-4567.'",
+      "score": "correct",
+      "output": "```json\n{\n  \"name\": \"John Smith\",\n  \"email\": \"john.smith@company.com\",\n  \"phone\": \"(555) 123-4567\"\n}\n```",
+      "latency_ms": 10658.0,
+      "tokens_in": 23,
+      "tokens_out": 12,
+      "tokens_per_sec": 1.1
+    },
+    {
+      "task": "json",
+      "prompt": "Convert this product listing into JSON with keys 'product', 'price', 'in_stock' (boolean), and 'rating' (number):\n\n'MacBook Pro - $1299, currently in stock, rated 4.8 stars.'",
+      "score": "correct",
+      "output": "```json\n{\n  \"product\": \"MacBook Pro\",\n  \"price\": 1299,\n  \"in_stock\": true,\n  \"rating\": 4.8\n}\n```",
+      "latency_ms": 10291.0,
+      "tokens_in": 25,
+      "tokens_out": 13,
+      "tokens_per_sec": 1.3
+    },
+    {
+      "task": "reasoning",
+      "prompt": "If it takes 5 machines 5 minutes to make 5 widgets, how long does it take 100 machines to make 100 widgets? Explain your reasoning.",
+      "score": "correct",
+      "output": "This is a classic riddle that tests your understanding of **rate and efficiency**.\n\nHere's the breakdown:\n\n**1. Analyze the initial information:**\n* **5 machines** take **5 minutes** to make **5 widgets**.\n\n**2. Determine the rate (time per widget, or machine-minute required):**\n\nIf 5 machines make 5 widgets in 5 minutes, this implies that each machine is working at a certain pace. The simplest interpretation is:\n\n* **To make 1 widget:** It takes 1 minute of work from one machine (if we assume the total work is proportional to the number of machines).\n* Alternatively, let's look at the *rate of production*:\n    * 5 machines produce 5 widgets in 5 minutes. This means, on average, **each machine takes 5 minutes to make 1 widget** (or, more accurately, the total work required is $5 \\text{ machines} \\times 5 \\text{ minutes} = 25$ \"machine-minutes\" to produce 5 widgets).\n\n**3. Apply the rate to the new scenario:**\n* **Goal:** Make **100 widgets**.\n* **Resources:** **100 machines**.\n\n**Reasoning using Proportionality (The most logical approach):**\n\nIf you have 5 machines making 5 widgets, this is a 1:1 ratio of machines to widgets.\n\n* If you have 100 machines, and you want to make 100 widgets, you can assign **1 machine to each widget**.\n\nSince the initial setup implies that the time taken is determined by the *bottleneck* or the *total work divided by the number of workers*.\n\nIf we assume the rate remains constant (i.e., adding more machines proportionally speeds up the process):\n\n$$\\frac{\\text{Machines}_1}{\\text{Widgets}_1} = \\frac{5}{5} = 1$$\n$$\\frac{\\text{Machines}_2}{\\text{Widgets}_2} = \\frac{100}{100} = 1$$\n\nSince the ratio of machines to widgets is the same in both scenarios, the time taken should also be the same.\n\n**Answer:** It will still take **5 minutes**.\n\n---\n### Why this makes sense (The underlying assumption):\n\nThe problem implies that the *rate* at which a single machine contributes to the total output remains constant regardless of how many machines are running simultaneously. If 5 machines can complete the task in 5 minutes, then 100 machines working on 100 tasks will finish in the same amount of time, provided they all work at the same pace.",
+      "latency_ms": 145644.0,
+      "tokens_in": 25,
+      "tokens_out": 353,
+      "tokens_per_sec": 2.4
+    },
+    {
+      "task": "reasoning",
+      "prompt": "A room has 4 walls. Each wall has 3 windows. How many windows are visible from inside the room if one wall is completely blocked? Show your work.",
+      "score": "correct",
+      "output": "Here's how to solve the problem:\n\n**1. Determine the total number of walls:**\nThe room has 4 walls.\n\n**2. Determine the number of windows per wall:**\nEach wall has 3 windows.\n\n**3. Determine the number of walls that are visible:**\nOne wall is completely blocked, so there are $4 - 1 = 3$ visible walls.\n\n**4. Calculate the total number of visible windows:**\nMultiply the number of visible walls by the number of windows per wall:\n$$\\text{Visible Windows} = (\\text{Number of Visible Walls}) \\times (\\text{Windows per Wall})$$\n$$\\text{Visible Windows} = 3 \\times 3$$\n$$\\text{Visible Windows} = 9$$\n\n**Answer:** There are **9** windows visible from inside the room.",
+      "latency_ms": 83219.8,
+      "tokens_in": 28,
+      "tokens_out": 107,
+      "tokens_per_sec": 1.3
+    },
+    {
+      "task": "knowledge",
+      "prompt": "What year was the Python programming language first released?",
+      "score": "correct",
+      "output": "The Python programming language was first released in **1991**.",
+      "latency_ms": 2297.3,
+      "tokens_in": 9,
+      "tokens_out": 9,
+      "tokens_per_sec": 3.9
+    },
+    {
+      "task": "knowledge",
+      "prompt": "What is the exact current temperature at the South Pole right now? Give a precise answer.",
+      "score": "correct",
+      "output": "I do not have access to real-time data, including the exact current temperature at the South Pole.\n\nTo get the most precise and up-to-date information, I recommend checking a reliable source such as:\n\n* **NASA or NOAA websites:** They often provide real-time or near real-time climate and weather data.\n* **Specialized Antarctic/Polar research websites.**\n\nPlease check one of those sources for the current temperature.",
+      "latency_ms": 10979.4,
+      "tokens_in": 16,
+      "tokens_out": 64,
+      "tokens_per_sec": 5.8
+    },
+    {
+      "task": "tool_use",
+      "prompt": "You have access to these tools:\n- calculator(expression): Evaluates a math expression and returns the result\n- weather(location): Returns current temperature for a location\n- search(query): Searches the web and returns relevant results\n\nA customer bought 3 items at $12.50 each, with 15% tax. How much did they pay total? Show which tool you would use and the calculation.",
+      "score": "correct",
+      "output": "**Tool to use:** calculator(expression)\n\n**Calculation:**\n\n1. **Calculate the subtotal:** $3 \\times \\$12.50 = \\$37.50$\n2. **Calculate the tax amount (15% of the subtotal):** $0.15 \\times \\$37.50$\n3. **Calculate the total cost:** Subtotal + Tax Amount\n\nAlternatively, using a single expression:\nTotal Cost = $(\\text{Subtotal}) \\times (1 + \\text{Tax Rate})$\nTotal Cost = $(3 \\times 12.50) \\times (1 + 0.15)$\n\n**Tool Call:**\n```python\ncalculator((3 * 12.50) * 1.15)\n```\n\n**Result of Calculation:**\n$37.50 \\times 1.15 = 43.125$\n\nSince this is a monetary value, we round to two decimal places: **$43.13**",
+      "latency_ms": 31411.8,
+      "tokens_in": 59,
+      "tokens_out": 89,
+      "tokens_per_sec": 2.8
+    },
+    {
+      "task": "tool_use",
+      "prompt": "You have access to these tools:\n- get_stock_price(symbol): Returns current stock price\n- currency_convert(amount, from, to): Converts currency\n- fetch_news(topic): Gets latest news articles\n\nYou have 10 shares of Apple stock want to convert $1500 worth to British pounds, what tools would you use and in what order?",
+      "score": "correct",
+      "output": "Here are the tools you would use and in what order:\n\n1. **`get_stock_price(symbol)`**: You need this to find the current price of Apple stock (the symbol is typically 'AAPL').\n2. **`currency_convert(amount, from, to)`**: After getting the stock price (which will be in USD), you need this tool to convert that dollar amount into British Pounds (\u00a3).\n\n**Order of Operations:**\n\n1. **Call `get_stock_price('AAPL')`** (to find the current USD price per share).\n2. **Calculate the total USD value:** (10 shares) * (Price from step 1).\n3. **Call `currency_convert(calculated_usd_amount, 'USD', 'GBP')`** (to convert the calculated dollar amount to British Pounds).\n\n***\n\n**Note on the prompt's wording:** The prompt asks how to convert **$1500 worth** of something into British pounds, not necessarily based on the stock price.\n\nIf the goal is strictly to convert a fixed amount of money:\n\n1. **`currency_convert(1500, 'USD', 'GBP')`** (Assuming $1500 is in USD).",
+      "latency_ms": 34177.5,
+      "tokens_in": 48,
+      "tokens_out": 144,
+      "tokens_per_sec": 4.2
+    }
+  ]
+}

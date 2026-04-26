@@ -1,0 +1,133 @@
+{
+  "model": "llama3.2:3b",
+  "temperature": 0.3,
+  "summary": {
+    "correct": 11,
+    "partial": 1,
+    "incorrect": 0,
+    "avg_latency_ms": 22188.2,
+    "avg_tokens_per_sec": 6.2
+  },
+  "results": [
+    {
+      "task": "text",
+      "prompt": "Explain quantum entanglement in a way a high school student could understand. Keep it to 2-3 sentences.",
+      "score": "correct",
+      "output": "Here's an explanation of quantum entanglement that a high school student can understand:\n\nQuantum entanglement is a phenomenon where two or more particles become connected in such a way that their properties, like spin or energy, are linked together, even if they're separated by huge distances. If something happens to one particle, it instantly affects the other entangled particles, regardless of how far apart they are. This effect happens faster than the speed of light, which is really weird and has been proven experimentally!",
+      "latency_ms": 12304.4,
+      "tokens_in": 50,
+      "tokens_out": 104,
+      "tokens_per_sec": 8.5
+    },
+    {
+      "task": "text",
+      "prompt": "Write a concise product review for a hypothetical coffee maker that is excellent but slightly loud.",
+      "score": "correct",
+      "output": "**4.5/5 Stars**\n\nI'm thoroughly impressed with the \"BrewMaster\" coffee maker, which has quickly become my go-to morning companion. Its impressive performance and sleek design make it a standout in its class.\n\nThe BrewMaster delivers rich, full-bodied coffee every time, with a perfect balance of flavor and crema. The machine's advanced temperature control system ensures optimal brewing conditions, resulting in a smooth and satisfying cup.\n\nHowever, I do want to note that the BrewMaster can be quite loud during operation - it's not uncommon for me to hear a gentle humming noise from downstairs when my neighbors are trying to sleep. While this isn't a deal-breaker, it's worth considering if you live in an apartment or shared living space.\n\nOverall, the BrewMaster is an excellent choice for coffee enthusiasts who value quality and performance. Just be prepared for some background noise during brewing.",
+      "latency_ms": 20579.9,
+      "tokens_in": 42,
+      "tokens_out": 181,
+      "tokens_per_sec": 8.8
+    },
+    {
+      "task": "coding",
+      "prompt": "Write a Python function called fibonacci that returns the nth Fibonacci number. Include input validation.",
+      "score": "correct",
+      "output": "def fibonacci(n):\n    \"\"\"\n    Returns the nth Fibonacci number.\n\n    Args:\n        n (int): The position of the Fibonacci number to return.\n\n    Returns:\n        int: The nth Fibonacci number.\n\n    Raises:\n        TypeError: If n is not an integer.\n        ValueError: If n is a negative integer.\n    \"\"\"\n\n    if not isinstance(n, int):\n        raise TypeError(\"Input must be an integer.\")\n\n    if n < 0:\n        raise ValueError(\"Input must be a non-negative integer.\")\n\n    # Base cases\n    if n == 0:\n        return 0\n    elif n == 1:\n        return 1\n\n    # Initialize variables for the previous two Fibonacci numbers\n    prev, curr = 0, 1\n\n    # Calculate the nth Fibonacci number\n    for _ in range(2, n + 1):\n        next_num = prev + curr\n        prev, curr = curr, next_num\n\n    return curr",
+      "latency_ms": 21367.4,
+      "tokens_in": 42,
+      "tokens_out": 197,
+      "tokens_per_sec": 9.2
+    },
+    {
+      "task": "coding",
+      "prompt": "Write a SQL query that finds customers who made purchases in the last 30 days and spent over $100 total.",
+      "score": "correct",
+      "output": "Here is an example of how you can write a SQL query to find customers who made purchases in the last 30 days and spent over $100 total:\n\n```sql\nSELECT \n    c.customer_id, \n    c.name, \n    SUM(p.total_amount) AS total_spent\nFROM \n    customers c\nJOIN \n    purchase p ON c.customer_id = p.customer_id\nWHERE \n    p.purchase_date >= DATE_SUB(CURRENT_DATE, INTERVAL 30 DAY)\nGROUP BY \n    c.customer_id, c.name\nHAVING \n    SUM(p.total_amount) > 100;\n```\n\nThis query works as follows:\n\n- It joins the `customers` table with the `purchase` table on the `customer_id` column.\n- The `WHERE` clause filters out purchases that were made more than 30 days ago.\n- The `GROUP BY` clause groups the results by customer, so we can calculate the total amount spent per customer.\n- The `HAVING` clause filters out customers who did not spend over $100.\n\nPlease note that this query assumes that you have a column named `total_amount` in your `purchase` table to store the total amount of each purchase. You may need to adjust the column name according to your actual database schema.\n\nAlso, please note that the date calculations can vary depending on the SQL dialect being used. The above query uses MySQL syntax for date calculations.",
+      "latency_ms": 41767.3,
+      "tokens_in": 48,
+      "tokens_out": 286,
+      "tokens_per_sec": 6.8
+    },
+    {
+      "task": "json",
+      "prompt": "Extract contact info from this text into JSON with keys 'name', 'email', and 'phone':\n\n'Contact John Smith at john.smith@company.com or call (555) 123-4567.'",
+      "score": "correct",
+      "output": "Here is the extracted contact information in JSON format:\n\n```\n{\n    \"name\": \"John Smith\",\n    \"email\": \"john.smith@company.com\",\n    \"phone\": \"(555) 123-4567\"\n}\n```",
+      "latency_ms": 13470.3,
+      "tokens_in": 67,
+      "tokens_out": 49,
+      "tokens_per_sec": 3.6
+    },
+    {
+      "task": "json",
+      "prompt": "Convert this product listing into JSON with keys 'product', 'price', 'in_stock' (boolean), and 'rating' (number):\n\n'MacBook Pro - $1299, currently in stock, rated 4.8 stars.'",
+      "score": "correct",
+      "output": "Here's the conversion of the given product listing to JSON:\n\n```json\n{\n    \"product\": \"MacBook Pro\",\n    \"price\": 1299,\n    \"in_stock\": true,\n    \"rating\": 4.8\n}\n```\n\nNote: I converted the price from a string to an integer, assuming it's in dollars and cents. If you want to keep it as a string, let me know!",
+      "latency_ms": 21209.3,
+      "tokens_in": 73,
+      "tokens_out": 88,
+      "tokens_per_sec": 4.1
+    },
+    {
+      "task": "reasoning",
+      "prompt": "If it takes 5 machines 5 minutes to make 5 widgets, how long does it take 100 machines to make 100 widgets? Explain your reasoning.",
+      "score": "correct",
+      "output": "This is a classic example of a scaling problem.\n\nThe key insight here is that the number of machines and the time taken to produce widgets are inversely proportional. In other words, if more machines are used, the time taken will decrease proportionally.\n\nLet's analyze the situation:\n\n* 5 machines take 5 minutes to make 5 widgets.\n* To find the rate at which one machine produces widgets, we can divide the number of widgets by the number of minutes: 5 widgets / 5 minutes = 1 widget per minute per machine.\n* Now, if we have 100 machines working together, each machine will still produce 1 widget per minute. However, with more machines, the total production rate increases.\n\nTo find the time taken to make 100 widgets with 100 machines, we can use the same rate: 1 widget per minute per machine. Since there are 100 machines, the total production rate is 100 widgets per minute.\n\nTherefore, it will take 100 machines 1 minute to make 100 widgets.",
+      "latency_ms": 37963.4,
+      "tokens_in": 58,
+      "tokens_out": 212,
+      "tokens_per_sec": 5.6
+    },
+    {
+      "task": "reasoning",
+      "prompt": "A room has 4 walls. Each wall has 3 windows. How many windows are visible from inside the room if one wall is completely blocked? Show your work.",
+      "score": "partial",
+      "output": "To find the total number of windows, we need to multiply the number of walls by the number of windows per wall.\n\nNumber of walls: 4\nNumber of windows per wall: 3\n\nTotal number of windows: 4 x 3 = 12\n\nHowever, one wall is completely blocked, so it doesn't contribute any visible windows. We subtract 1 from the total:\n\nVisible windows: 12 - 1 = 11",
+      "latency_ms": 16682.8,
+      "tokens_in": 59,
+      "tokens_out": 91,
+      "tokens_per_sec": 5.5
+    },
+    {
+      "task": "knowledge",
+      "prompt": "What year was the Python programming language first released?",
+      "score": "correct",
+      "output": "The Python programming language was first released in 1991 by Guido van Rossum.",
+      "latency_ms": 4278.8,
+      "tokens_in": 35,
+      "tokens_out": 19,
+      "tokens_per_sec": 4.4
+    },
+    {
+      "task": "knowledge",
+      "prompt": "What is the exact current temperature at the South Pole right now? Give a precise answer.",
+      "score": "correct",
+      "output": "I can't provide real-time information or updates on current temperatures at specific locations, including the South Pole. However, I can give you some general information about the climate of the South Pole.\n\nThe South Pole is one of the coldest places on Earth, with an average temperature of around -50\u00b0C (-58\u00b0F) in winter and -12\u00b0C (10\u00b0F) in summer. The temperature at the South Pole can vary greatly depending on the time of year and weather conditions.\n\nIf you're looking for current temperature information, I recommend checking a reliable weather website or app, such as AccuWeather or Weather.com, which provide up-to-date temperature readings from around the world, including Antarctica.",
+      "latency_ms": 20644.8,
+      "tokens_in": 43,
+      "tokens_out": 140,
+      "tokens_per_sec": 6.8
+    },
+    {
+      "task": "tool_use",
+      "prompt": "You have access to these tools:\n- calculator(expression): Evaluates a math expression and returns the result\n- weather(location): Returns current temperature for a location\n- search(query): Searches the web and returns relevant results\n\nA customer bought 3 items at $12.50 each, with 15% tax. How much did they pay total? Show which tool you would use and the calculation.",
+      "score": "correct",
+      "output": "I would use the calculator(expression) tool to calculate the total amount paid by the customer.\n\nThe calculation is:\n\n1. Calculate the subtotal: 3 items x $12.50 = $37.50\n2. Calculate the tax: 15% of $37.50 = 0.15 x $37.50 = $5.625\n3. Add the tax to the subtotal: $37.50 + $5.625 = $43.125\n\nUsing the calculator(expression) tool, I would enter:\n\n`$12.50 * 3 + (15/100) * ($12.50 * 3)`",
+      "latency_ms": 25682.3,
+      "tokens_in": 105,
+      "tokens_out": 131,
+      "tokens_per_sec": 5.1
+    },
+    {
+      "task": "tool_use",
+      "prompt": "You have access to these tools:\n- get_stock_price(symbol): Returns current stock price\n- currency_convert(amount, from, to): Converts currency\n- fetch_news(topic): Gets latest news articles\n\nYou have 10 shares of Apple stock want to convert $1500 worth to British pounds, what tools would you use and in what order?",
+      "score": "correct",
+      "output": "To accomplish this task, I would follow these steps:\n\n1. Get the current stock price of Apple using `get_stock_price(symbol=\"AAPL\")`. This will give me the current market value of my 10 shares.\n\n2. Calculate the total amount I can convert to British pounds by multiplying the number of shares with the current stock price and then converting the result to British pounds using `currency_convert(amount=get_stock_price(\"AAPL\"), from=\"USD\", to=\"GBP\")`.\n\nHere's a Python code snippet that demonstrates this:\n\n```python\nimport get_stock_price\n\n# Get the current Apple stock price\napple_stock_price = get_stock_price(symbol=\"AAPL\")\n\n# Calculate the total amount in British pounds\namount_in_british_pounds = (10 * apple_stock_price) / 1500\n\nprint(amount_in_british_pounds)\n```\n\nThis will give me the equivalent value of my $1500 worth of Apple stock in British pounds.",
+      "latency_ms": 30307.7,
+      "tokens_in": 94,
+      "tokens_out": 196,
+      "tokens_per_sec": 6.5
+    }
+  ]
+}

@@ -1,38 +1,15 @@
 # =============================================================================
-# LOCAL LLM EVALUATION
-# =============================================================================
-# A simple, readable demo that:
-#   1. Runs a local LLM via Ollama
-#   2. Scores responses across several task types
-#   3. Logs runtime metrics (latency, tokens/sec)
-#   4. Saves structured results to a JSON file
+# EVAL UTILS - shared components used by both ollama-eval.py and llama-cpp-eval.py
 #
-# HOW TO USE:
-#   1. pip install -r requirements.txt
-#   2. ollama pull ### (replace with local model name)
-#   3. python local-llm-eval.py
-#
-# TO SWAP MODELS:
-#   Edit the MODEL variable below and re-run.
-#   Compare the resulting JSON files to see performance differences.
+# Exports:
+#   TASKS              - list of 12 evaluation tasks across 6 categories
+#   score_response()   - scores a model response as "correct", "partial", or "incorrect"
+#   print_summary()    - prints a formatted summary table to stdout
+#   save_results()     - serialises results to a JSON file
 # =============================================================================
 
 import json
-import ollama
-import subprocess
-import time
-
-# =============================================================================
-# CONFIG - edit these values to change behaviour
-# =============================================================================
-
-MODEL = "gemma4:e2b"        # swap to compare
-TEMPERATURE = 0.3           # lower = more deterministic; try 0.0 or 0.7 too
-
-# Dynamically generate results filename based on model name
-# Sanitize model name by replacing colons and spaces with underscores
-MODEL_SAFE_NAME = MODEL.replace(":", "_").replace(" ", "_").lower()
-RESULTS_FILE = f"results_{MODEL_SAFE_NAME}.json" # where to write the final output
+import os
 
 # =============================================================================
 # TASK SUITE
@@ -53,7 +30,15 @@ TASKS = [
     {
         "task": "text",
         "prompt": "Write a concise product review for a hypothetical coffee maker that is excellent but slightly loud.",
-        "expected": ["excellent", "loud"],
+        # Inner lists are OR-groups: any one word in a group satisfies that slot.
+        # Both slots must be satisfied for "correct".
+        # Slot 1: positive quality words  |  Slot 2: noise words
+        "expected": [
+            ["excellent", "great", "amazing", "fantastic", "exceptional",
+             "outstanding", "superb", "perfect", "game-changer", "game changer",
+             "impressive", "wonderful", "brilliant"],
+            ["loud", "noisy", "noise", "sound"],
+        ],
     },
 
     # --- coding --------------------------------------------------------------
@@ -84,7 +69,9 @@ TASKS = [
     {
         "task": "reasoning",
         "prompt": "If it takes 5 machines 5 minutes to make 5 widgets, how long does it take 100 machines to make 100 widgets? Explain your reasoning.",
-        "expected": "5",
+        # "5" appears throughout any response (prompt echo, wrong answers like "100 minutes").
+        # "5 minutes" only appears in a correct answer that identifies the invariant.
+        "expected": "5 minutes",
     },
     {
         "task": "reasoning",
@@ -124,44 +111,15 @@ A customer bought 3 items at $12.50 each, with 15% tax. How much did they pay to
 - currency_convert(amount, from, to): Converts currency
 - fetch_news(topic): Gets latest news articles
 
-If Apple stock is currently $150 per share and you want to convert $1500 worth to British pounds, what tools would you use and in what order?""",
+You have 10 shares of Apple stock want to convert $1500 worth to British pounds, what tools would you use and in what order?""",
         "expected": ["get_stock_price", "currency_convert"],
     },
 
 ]
 
-# =============================================================================
-# STEP 1 - run a single prompt and return the response + metrics
-# =============================================================================
-
-def run_prompt(prompt):
-    """Send a prompt to the model and return text + timing metadata."""
-
-    response = ollama.chat(
-        model=MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        options={"temperature": TEMPERATURE},
-        keep_alive="5m",  # keep the model loaded for faster subsequent responses
-    )
-
-    text = response.message.content
-    tokens_in = response.prompt_eval_count or 0
-    tokens_out = response.eval_count or 0
-    # durations are in nanoseconds - convert to ms for readability
-    latency_ms = (response.total_duration or 0) / 1_000_000
-    eval_dur_sec = (response.eval_duration or 1) / 1_000_000_000
-    tokens_per_sec = round(tokens_out / eval_dur_sec, 1) if eval_dur_sec > 0 else 0
-
-    return {
-        "text": text,
-        "tokens_in": tokens_in,
-        "tokens_out": tokens_out,
-        "latency_ms": round(latency_ms, 1),
-        "tokens_per_sec": tokens_per_sec,
-    }
 
 # =============================================================================
-# STEP 2 - score a response against its expected value
+# SCORER
 # =============================================================================
 
 def score_response(task, output_text):
@@ -180,7 +138,6 @@ def score_response(task, output_text):
         # in markdown fences like ```json ... ```)
         raw = output_text
         if "```" in raw:
-            # grab what's between the first ``` pair
             raw = raw.split("```")[1]
             if raw.startswith("json"):
                 raw = raw[4:]
@@ -190,10 +147,8 @@ def score_response(task, output_text):
         except json.JSONDecodeError:
             return "incorrect"
 
-        # Count how many expected keys have the right value
         correct_keys = 0
         for key, val in expected.items():
-            # compare as strings to handle int/string mismatches gracefully
             if key in parsed and str(parsed[key]).lower() == str(val).lower():
                 correct_keys += 1
 
@@ -206,7 +161,6 @@ def score_response(task, output_text):
 
     # ---- coding tasks -------------------------------------------------------
     elif task_type == "coding":
-        # expected is a list of strings that should appear in the output
         hits = sum(1 for kw in expected if kw.lower() in text)
         if hits == len(expected):
             return "correct"
@@ -233,12 +187,19 @@ def score_response(task, output_text):
 
     # ---- knowledge tasks ----------------------------------------------------
     elif task_type == "knowledge":
-        # special case: "unanswerable" means we want the model to refuse
         if expected == "unanswerable":
             refusal_phrases = [
                 "cannot", "can't", "don't know", "not possible",
                 "impossible", "no way to know", "estimate", "approximate",
-                "no exact", "not known", "uncertain",
+                "no exact", "not known", "uncertain", "do not have",
+                "don't have", "no access", "not available", "i cannot access",
+                "don't have access", "unable to", "lack", "no data",
+                # Broader paraphrases observed in practice (e.g. ministral-3:3b)
+                "real-time", "real time", "live data", "live weather",
+                "current conditions", "not able to", "i'm not able",
+                "i am not able", "no real-time", "no real time",
+                "don't have access to real", "access to current",
+                "access to live", "access to real-time",
             ]
             if any(phrase in text for phrase in refusal_phrases):
                 return "correct"
@@ -253,7 +214,14 @@ def score_response(task, output_text):
     # ---- general text tasks -------------------------------------------------
     elif task_type == "text":
         if isinstance(expected, list):
-            hits = sum(1 for kw in expected if kw.lower() in text)
+            # Support nested OR-groups: inner list = any one match satisfies the slot.
+            # A plain string item is treated as a single-item OR-group.
+            def _slot_hit(slot, t):
+                if isinstance(slot, list):
+                    return any(s.lower() in t for s in slot)
+                return str(slot).lower() in t
+
+            hits = sum(1 for slot in expected if _slot_hit(slot, text))
             if hits == len(expected):
                 return "correct"
             elif hits > 0:
@@ -268,7 +236,6 @@ def score_response(task, output_text):
 
     # ---- tool use tasks -----------------------------------------------------
     elif task_type == "tool_use":
-        # expected is a list of tool names / key values that should appear in the output
         hits = sum(1 for kw in expected if kw.lower() in text)
         if hits == len(expected):
             return "correct"
@@ -281,80 +248,17 @@ def score_response(task, output_text):
     else:
         return "incorrect"
 
+
 # =============================================================================
-# STEP 3 - run every task, print live progress, collect results
+# OUTPUT HELPERS
 # =============================================================================
 
-print(f"\n{'='*60}")
-print(f"  Local LLM Evaluation")
-print(f"  Model      : {MODEL}")
-print(f"  Temperature: {TEMPERATURE}")
-print(f"  Tasks      : {len(TASKS)}")
-print(f"{'='*60}\n")
-
-# Start ollama serve in background
-print("Starting Ollama server...")
-proc = subprocess.Popen(["ollama", "serve"], 
-                        stdout=subprocess.DEVNULL, 
-                        stderr=subprocess.DEVNULL)
-
-# Wait for ollama to be ready before proceeding
-max_retries = 10
-for attempt in range(max_retries):
-    try:
-        ollama.list()
-        print("Ollama server is ready!\n")
-        break
-    except Exception:
-        if attempt < max_retries - 1:
-            time.sleep(1)
-        else:
-            print("ERROR: Could not connect to Ollama after 10 retries.")
-            proc.terminate()
-            raise SystemExit(1)
-
-try:
-    results = []
-
-    for i, task in enumerate(TASKS, start=1):
-        print(f"\n[{i:02d}/{len(TASKS)}] Starting {task['task']:<16} task...")
-        print(f"    Prompt: {task['prompt'][:70]}..." if len(task['prompt']) > 70 else f"    Prompt: {task['prompt']}")
-        print(f"    Running inference...", end="", flush=True)
-
-        result = run_prompt(task["prompt"])
-        score  = score_response(task, result["text"])
-
-        print(f" Done!")
-        print(f"    Result: {score:<10} | {result['latency_ms']:>8.0f} ms  | {result['tokens_per_sec']:>6.1f} tok/s")
-        print(f"    Tokens: {result['tokens_in']} in, {result['tokens_out']} out")
-
-        # Store everything - the full output text is included so you can read it
-        results.append({
-            "task": task["task"],
-            "prompt": task["prompt"],
-            "score": score,
-            "output": result["text"],
-            "latency_ms": result["latency_ms"],
-            "tokens_in": result["tokens_in"],
-            "tokens_out": result["tokens_out"],
-            "tokens_per_sec": result["tokens_per_sec"],
-        })
-
-    print(f"\n{'='*60}")
-    print(f"  All tasks completed! Processing results...")
-    print(f"{'='*60}")
-
-    # =============================================================================
-    # STEP 4 - print a summary table
-    # =============================================================================
-
-    print(f"\n{'='*60}")
-    print(f"  Summary - {MODEL}")
-    print(f"{'='*60}")
+def print_summary(model_name, results):
+    """Print a formatted summary table to stdout."""
 
     score_counts = {"correct": 0, "partial": 0, "incorrect": 0}
-    total_latency = 0
-    total_tps = 0
+    total_latency = 0.0
+    total_tps = 0.0
 
     for r in results:
         score_counts[r["score"]] += 1
@@ -362,6 +266,9 @@ try:
         total_tps     += r["tokens_per_sec"]
 
     n = len(results)
+    print(f"\n{'='*60}")
+    print(f"  Summary - {model_name}")
+    print(f"{'='*60}")
     print(f"  Correct  : {score_counts['correct']}/{n}")
     print(f"  Partial  : {score_counts['partial']}/{n}")
     print(f"  Incorrect: {score_counts['incorrect']}/{n}")
@@ -369,13 +276,45 @@ try:
     print(f"  Avg tok/sec  : {total_tps / n:.1f}")
     print(f"{'='*60}\n")
 
-    # =============================================================================
-    # STEP 5 - save results to JSON
-    # =============================================================================
+    return score_counts, total_latency, total_tps
 
+
+def save_results(model_name, temperature, results, filename, script_type=None):
+    """Serialise results list to a JSON file in the output directory.
+    
+    Args:
+        model_name: Model name to include in results
+        temperature: Temperature setting to include in results
+        results: List of result dictionaries
+        filename: Filename for the output (without path or script_type prefix)
+        script_type: Optional script type ("ollama" or "llamacpp") to prepend to filename
+    """
+
+    # Create output directory if it doesn't exist
+    output_dir = "output"
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Construct filename with script_type prefix if provided
+    if script_type:
+        output_filename = f"{script_type}_{filename}"
+    else:
+        output_filename = filename
+    
+    filepath = os.path.join(output_dir, output_filename)
+
+    score_counts = {"correct": 0, "partial": 0, "incorrect": 0}
+    total_latency = 0.0
+    total_tps = 0.0
+
+    for r in results:
+        score_counts[r["score"]] += 1
+        total_latency += r["latency_ms"]
+        total_tps     += r["tokens_per_sec"]
+
+    n = len(results)
     output = {
-        "model": MODEL,
-        "temperature": TEMPERATURE,
+        "model": model_name,
+        "temperature": temperature,
         "summary": {
             "correct": score_counts["correct"],
             "partial": score_counts["partial"],
@@ -386,17 +325,7 @@ try:
         "results": results,
     }
 
-    with open(RESULTS_FILE, "w") as f:
+    with open(filepath, "w") as f:
         json.dump(output, f, indent=2)
 
-    print(f"Results saved to {RESULTS_FILE}")
-    print("To compare models: change MODEL at the top of the script and re-run.")
-    print("Each model's results are saved to a separate file for easy comparison.\n")
-
-finally:
-    # Clean up ollama process and all children
-    print("\nCleaning up Ollama server...")
-    try:
-        subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], timeout=3)
-    except Exception:
-        pass
+    print(f"Results saved to {filepath}")

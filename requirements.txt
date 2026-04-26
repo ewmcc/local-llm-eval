@@ -1,1 +1,4 @@
-ollama
+langchain-community
+langchain-core
+langchain-ollama
+llama-cpp-python
